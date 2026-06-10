@@ -225,7 +225,7 @@
     <div class="card">
       <div class="field">
         <label>E-mail</label>
-        <input type="text" id="login-name" autocomplete="off"
+        <input type="email" id="login-name" autocomplete="off"
           onkeydown="if(event.key==='Enter') doLogin()">
       </div>
       <button class="btn-primary" onclick="doLogin()">Entrar</button>
@@ -333,7 +333,8 @@
   window.addEventListener('load', async () => {
     await initDetector();
 
-    const savedUser = sessionStorage.getItem('scanner-user');
+    const savedUser = localStorage.getItem('scanner-user');
+    const savedHistory = localStorage.getItem('scanner-history');
     if (savedUser) {
       currentUser = savedUser;
       document.getElementById('user-name-display').textContent = savedUser;
@@ -342,7 +343,7 @@
       document.getElementById('scanner-screen').classList.add('active');
       setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
-      const savedHistory = sessionStorage.getItem('scanner-history');
+      const savedHistory = localStorage.getItem('scanner-history');
       if (savedHistory) {
         sessionHistory = JSON.parse(savedHistory);
         renderHistory();
@@ -354,7 +355,7 @@
     const name = document.getElementById('login-name').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
     currentUser = name;
-    sessionStorage.setItem('scanner-user', name);
+    localStorage.setItem('scanner-user', name);
     document.getElementById('user-name-display').textContent = name;
     document.getElementById('avatar-initials').textContent = getInitials(name);
     document.getElementById('login-screen').classList.remove('active');
@@ -365,8 +366,8 @@
   function doLogout() {
     currentUser = '';
     sessionHistory = [];
-    sessionStorage.removeItem('scanner-user');
-    sessionStorage.removeItem('scanner-history');
+    localStorage.removeItem('scanner-user');
+    localStorage.removeItem('scanner-history');
     document.getElementById('history-list').innerHTML = '';
     document.getElementById('history-container').style.display = 'none';
     document.getElementById('last-code').textContent = 'Nenhum código lido ainda';
@@ -432,7 +433,7 @@
     const badgeClass  = format === 'code_128' ? 'badge-128' : 'badge-39';
 
     sessionHistory.unshift({ value, formatLabel, badgeClass, time: `${dateStr} ${timeStr}`, user: currentUser });
-    sessionStorage.setItem('scanner-history', JSON.stringify(sessionHistory));
+    localStorage.setItem('scanner-history', JSON.stringify(sessionHistory));
 
     document.getElementById('last-code').textContent = value;
     document.getElementById('last-code').classList.remove('empty');

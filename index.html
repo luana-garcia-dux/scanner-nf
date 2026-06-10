@@ -321,6 +321,19 @@
   let sessionHistory = [];
   let detector = null;
 
+  // Recupera sessão ao recarregar
+  window.addEventListener('load', () => {
+    const saved = sessionStorage.getItem('scanner-user');
+    if (saved) {
+      currentUser = saved;
+      document.getElementById('user-name-display').textContent = saved;
+      document.getElementById('avatar-initials').textContent = getInitials(saved);
+      document.getElementById('login-screen').classList.remove('active');
+      document.getElementById('scanner-screen').classList.add('active');
+      setStatus('Pronto para leitura');
+    }
+  });
+
   // Inicia o detector assim que a página carrega — não espera o login
   async function initDetector() {
     if (!('BarcodeDetector' in window)) return;
@@ -348,6 +361,7 @@
     const name = document.getElementById('login-name').value.trim();
     if (!name) { alert('Digite seu nome para entrar.'); return; }
     currentUser = name;
+    sessionStorage.setItem('scanner-user', name);
     document.getElementById('user-name-display').textContent = name;
     document.getElementById('avatar-initials').textContent = getInitials(name);
     document.getElementById('login-screen').classList.remove('active');
@@ -370,6 +384,7 @@
   function doLogout() {
     currentUser = '';
     sessionHistory = [];
+    sessionStorage.removeItem('scanner-user');
     document.getElementById('history-list').innerHTML = '';
     document.getElementById('history-container').style.display = 'none';
     document.getElementById('last-code').textContent = 'Nenhum código lido ainda';

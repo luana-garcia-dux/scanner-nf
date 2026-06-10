@@ -278,6 +278,13 @@
 
   <div id="status-bar" class="status-bar">Toque no botão para fotografar o código</div>
 
+   <button id="btn-confirmar" onclick="onBarcodeFound()"
+    style="display:none; width:100%; padding:14px; background:#16a34a; color:#fff;
+    border:none; border-radius:14px; font-size:15px; font-family:'Poppins',sans-serif;
+    font-weight:500; cursor:pointer; margin-bottom:1rem;">
+    Confirmar leitura
+  </button>
+  
   <div class="result-card">
     <div class="result-label">Último código lido</div>
     <div class="result-value empty" id="last-code">Nenhum código lido ainda</div>
@@ -292,6 +299,7 @@
 
 <script>
   let currentUser = '';
+  let newCode = [];
   let sessionHistory = [];
   let detector = null;
 
@@ -367,8 +375,10 @@
   function doLogout() {
     currentUser = '';
     sessionHistory = [];
+    newCode = [];
     localStorage.removeItem('scanner-user');
-    localStorage.removeItem('scanner-history');
+    localStorage.removeItem('scanner-history');    
+    document.getElementById('btn-confirmar').style.display = 'none';
     document.getElementById('history-list').innerHTML = '';
     document.getElementById('history-container').style.display = 'none';
     document.getElementById('last-code').textContent = 'Nenhum código lido ainda';
@@ -410,7 +420,7 @@
         const bitmap   = await createImageBitmap(files[i]);
         const barcodes = await detector.detect(bitmap);
         overlay.style.display = 'none';
-        if (barcodes.length > 0) { onBarcodeFound(barcodes[0].rawValue, barcodes[0].format); success++; }
+        if (barcodes.length > 0) { newCode = [barcodes[0].rawValue, barcodes[0].format]; document.getElementById('btn-confirmar').style.display = 'block'; success++; }
         else failed++;
       } catch(e) {
         overlay.style.display = 'none';
@@ -419,14 +429,23 @@
       URL.revokeObjectURL(url);
     }
 
-    if (total > 1) {
+    if (total === 1) {
+      if (success) setStatus('Código lido com sucesso!', 'success');
+      else setStatus('Nenhum código identificado — tente novamente mais perto', 'error');
+    }
+
+    else if (total > 1) {
       if (failed === 0) setStatus(`${total} códigos lidos com sucesso!`, 'success');
       else if (success === 0) setStatus(`Nenhum código identificado nas ${total} imagens`, 'error');
       else setStatus(`${success} lido${success > 1 ? 's' : ''}, ${failed} não identificado${failed > 1 ? 's' : ''}`, '');
     }
   }
 
-  function onBarcodeFound(value, format) {
+  function onBarcodeFound() {
+    document.getElementById('btn-confirmar').style.display = 'none';
+    if (!newCode.length) return;
+    const value = newCode[0];
+    const format = newCode[1];
     const now = new Date();
     const timeStr = now.toLocaleTimeString('pt-BR');
     const dateStr = now.toLocaleDateString('pt-BR');

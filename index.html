@@ -373,7 +373,7 @@
     }
   });
 
-  function doLogin() {
+  async function doLogin() {
     const name = document.getElementById('login-name').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
 

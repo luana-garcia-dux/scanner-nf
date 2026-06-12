@@ -380,7 +380,7 @@
     setStatus('Verificando acesso...', 'loading');
 
     try {
-      const res = await fetch('https://n8n-dux.duckdns.org/webhook-test/login-scan-nf', {
+      const res = await fetch('https://n8n-dux.duckdns.org/webhook/login-scan-nf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: name })

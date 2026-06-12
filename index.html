@@ -41,7 +41,7 @@
     .field { margin-bottom: 1rem; }
     .field label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; }
 
-    input[type="text"] {
+    input[type="text"], input[type="email"] {
       width: 100%;
       padding: 12px 14px;
       border: 1px solid #ddd;
@@ -52,7 +52,7 @@
       background: #fafafa;
       outline: none;
     }
-    input[type="text"]:focus { border-color: #1a1a1a; background: #fff; }
+    input[type="text"]:focus, input[type="email"]:focus { border-color: #1a1a1a; background: #fff; }
 
     .btn-primary {
       width: 100%;
@@ -156,6 +156,16 @@
     .status-bar.success { color: #16a34a; font-weight: 500; }
     .status-bar.error   { color: #dc2626; }
     .status-bar.loading { color: #1a56db; }
+
+    .btn-confirmar {
+      display: none;
+      width: 100%; padding: 14px;
+      background: #16a34a; color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-family: 'Poppins', sans-serif;
+      font-weight: 500; cursor: pointer; margin-bottom: 1rem;
+    }
+    .btn-confirmar:active { opacity: 0.8; }
 
     .result-card {
       background: #fff; border-radius: 12px;
@@ -278,13 +288,10 @@
 
   <div id="status-bar" class="status-bar">Toque no botão para fotografar o código</div>
 
-   <button id="btn-confirmar" onclick="onBarcodeFound()"
-    style="display:none; width:100%; padding:14px; background:#16a34a; color:#fff;
-    border:none; border-radius:14px; font-size:15px; font-family:'Poppins',sans-serif;
-    font-weight:500; cursor:pointer; margin-bottom:1rem;">
-    Confirmar leitura
+  <button id="btn-confirmar" class="btn-confirmar" onclick="onBarcodeFound()">
+    ✓ Confirmar leitura
   </button>
-  
+
   <div class="result-card">
     <div class="result-label">Último código lido</div>
     <div class="result-value empty" id="last-code">Nenhum código lido ainda</div>
@@ -338,12 +345,10 @@
     document.getElementById('history-container').style.display = 'block';
   }
 
-  // Restaura sessão ao recarregar (Android mata o browser ao abrir câmera)
   window.addEventListener('load', async () => {
     await initDetector();
 
     const savedUser = localStorage.getItem('scanner-user');
-    const savedHistory = localStorage.getItem('scanner-history');
     if (savedUser) {
       currentUser = savedUser;
       document.getElementById('user-name-display').textContent = savedUser;
@@ -356,6 +361,14 @@
       if (savedHistory) {
         sessionHistory = JSON.parse(savedHistory);
         renderHistory();
+      }
+
+      // Restaura leitura pendente (caso Android tenha recarregado antes de confirmar)
+      const savedPending = localStorage.getItem('scanner-pending');
+      if (savedPending) {
+        newCode = JSON.parse(savedPending);
+        document.getElementById('btn-confirmar').style.display = 'block';
+        setStatus('Código detectado — confirme para salvar', 'success');
       }
     }
   });
@@ -377,7 +390,8 @@
     sessionHistory = [];
     newCode = [];
     localStorage.removeItem('scanner-user');
-    localStorage.removeItem('scanner-history');    
+    localStorage.removeItem('scanner-history');
+    localStorage.removeItem('scanner-pending');
     document.getElementById('btn-confirmar').style.display = 'none';
     document.getElementById('history-list').innerHTML = '';
     document.getElementById('history-container').style.display = 'none';
@@ -420,8 +434,14 @@
         const bitmap   = await createImageBitmap(files[i]);
         const barcodes = await detector.detect(bitmap);
         overlay.style.display = 'none';
-        if (barcodes.length > 0) { newCode = [barcodes[0].rawValue, barcodes[0].format]; document.getElementById('btn-confirmar').style.display = 'block'; success++; }
-        else failed++;
+        if (barcodes.length > 0) {
+          newCode = [barcodes[0].rawValue, barcodes[0].format];
+          localStorage.setItem('scanner-pending', JSON.stringify(newCode));
+          document.getElementById('btn-confirmar').style.display = 'block';
+          success++;
+        } else {
+          failed++;
+        }
       } catch(e) {
         overlay.style.display = 'none';
         failed++;
@@ -430,12 +450,10 @@
     }
 
     if (total === 1) {
-      if (success) setStatus('Código lido com sucesso!', 'success');
+      if (success) setStatus('Código lido — confirme para salvar', 'success');
       else setStatus('Nenhum código identificado — tente novamente mais perto', 'error');
-    }
-
-    else if (total > 1) {
-      if (failed === 0) setStatus(`${total} códigos lidos com sucesso!`, 'success');
+    } else if (total > 1) {
+      if (failed === 0) setStatus(`${total} códigos lidos — confirme para salvar`, 'success');
       else if (success === 0) setStatus(`Nenhum código identificado nas ${total} imagens`, 'error');
       else setStatus(`${success} lido${success > 1 ? 's' : ''}, ${failed} não identificado${failed > 1 ? 's' : ''}`, '');
     }
@@ -444,8 +462,12 @@
   function onBarcodeFound() {
     document.getElementById('btn-confirmar').style.display = 'none';
     if (!newCode.length) return;
+
     const value = newCode[0];
     const format = newCode[1];
+    newCode = [];
+    localStorage.removeItem('scanner-pending');
+
     const now = new Date();
     const timeStr = now.toLocaleTimeString('pt-BR');
     const dateStr = now.toLocaleDateString('pt-BR');
@@ -459,7 +481,7 @@
     document.getElementById('last-code').classList.remove('empty');
     document.getElementById('last-meta').innerHTML =
       `<span class="badge ${badgeClass}">Code ${formatLabel}</span> ${dateStr} ${timeStr}`;
-    setStatus('Código lido com sucesso!', 'success');
+    setStatus('Código salvo no histórico!', 'success');
 
     renderHistory();
   }

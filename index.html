@@ -376,6 +376,29 @@
   function doLogin() {
     const name = document.getElementById('login-name').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
+
+    setStatus('Verificando acesso...', 'loading');
+
+    try {
+      const res = await fetch('https://n8n-dux.duckdns.org/webhook-test/login-scan-nf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: name })
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.autorizado === false) {
+        document.getElementById('login-screen').classList.add('active');
+        alert(data.mensagem || 'Acesso negado. Verifique seu e-mail.');
+        setStatus('');
+        return;
+      } 
+    } catch(e) {
+    alert('Erro ao conectar com o servidor. Tente novamente.');
+    setStatus('');
+    return;
+    }
+    
     currentUser = name;
     localStorage.setItem('scanner-user', name);
     document.getElementById('user-name-display').textContent = name;

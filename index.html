@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Scanner NF</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
@@ -97,15 +96,6 @@
       font-family: 'Poppins', sans-serif;
     }
 
-    .btn-camera-wrap { position: relative; flex: 1; }
-
-    /* container do input file (galeria) */
-    .btn-camera-wrap input[type="file"] {
-      position: absolute;
-      inset: 0; width: 100%; height: 100%;
-      opacity: 0; cursor: pointer; font-size: 0;
-    }
-
     .btn-camera {
       width: 100%;
       padding: 16px 14px;
@@ -118,53 +108,10 @@
       font-weight: 500;
       display: flex; align-items: center; justify-content: center; gap: 10px;
       cursor: pointer;
+      flex: 1;
     }
-
     .btn-camera.gallery { background: #444; }
     .btn-camera svg { width: 22px; height: 22px; pointer-events: none; }
-
-    /* Câmera — botão direto (não usa input file) */
-    #btn-camera-real {
-      pointer-events: auto;
-    }
-
-    /* Vídeo câmera traseira */
-    #camera-modal {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-      background: #000;
-      flex-direction: column;
-      align-items: center; justify-content: flex-start;
-    }
-    #camera-modal.open { display: flex; }
-
-    #qr-reader {
-      width: 100%;
-      max-width: 480px;
-    }
-
-    /* Esconde elementos desnecessários do html5-qrcode */
-    #qr-reader__header_message,
-    #qr-reader__status_span,
-    #qr-reader__dashboard_section_csr span,
-    #qr-reader select { display: none !important; }
-
-    #qr-reader__dashboard { background: #000; padding: 0; }
-    #qr-reader__dashboard_section_swaplink { color: #fff; font-size: 13px; }
-
-    .camera-controls {
-      display: flex; gap: 20px; padding: 16px;
-      width: 100%; justify-content: center; align-items: center;
-    }
-
-    .btn-cancel-cam {
-      font-size: 14px; color: #fff;
-      background: transparent; border: 1px solid #555;
-      padding: 10px 20px; border-radius: 10px;
-      font-family: 'Poppins', sans-serif; cursor: pointer;
-    }
-
-    canvas#snap-canvas { display: none; }
 
     .preview-wrap {
       display: none;
@@ -260,14 +207,6 @@
 </head>
 <body>
 
-<!-- MODAL CÂMERA TRASEIRA -->
-<div id="camera-modal">
-  <div id="qr-reader"></div>
-  <div class="camera-controls">
-    <button class="btn-cancel-cam" onclick="closeCamera()">Cancelar</button>
-  </div>
-</div>
-
 <!-- LOGIN -->
 <div id="login-screen" class="screen active">
   <div class="login-wrapper">
@@ -308,29 +247,21 @@
   </div>
 
   <div style="display:flex; gap:10px; margin-bottom:1rem;">
-    <!-- CÂMERA: botão direto, sem input file -->
-    <div class="btn-camera-wrap" style="position:static;">
-      <button class="btn-camera" id="btn-camera-real" onclick="openCamera()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        Câmera
-      </button>
-    </div>
-
-    <!-- GALERIA: input file normal -->
-    <div class="btn-camera-wrap">
-      <input type="file" accept="image/*" multiple id="gallery-input" onchange="onPhoto(event)">
-      <div class="btn-camera gallery">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
-        Galeria
-      </div>
-    </div>
+    <button class="btn-camera" onclick="triggerInput(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Câmera
+    </button>
+    <button class="btn-camera gallery" onclick="triggerInput(false)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      Galeria
+    </button>
   </div>
 
   <div class="preview-wrap" id="preview-wrap">
@@ -364,7 +295,6 @@
   let newCode = [];
   let sessionHistory = [];
   let detector = null;
-  let html5QrCode = null;
 
   // ── Detector ──────────────────────────────────────────────────────────────
   async function initDetector() {
@@ -376,95 +306,28 @@
     } catch(e) {}
   }
 
-  // ── Câmera traseira via html5-qrcode ──────────────────────────────────────
-  async function openCamera() {
-    document.getElementById('camera-modal').classList.add('open');
+  // ── Input dinâmico — criado do zero a cada clique ─────────────────────────
+  function triggerInput(useCamera) {
+    // Remove input anterior se existir
+    const old = document.getElementById('_dyn_input');
+    if (old) old.remove();
 
-    html5QrCode = new Html5Qrcode('qr-reader');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = '_dyn_input';
+    input.accept = 'image/*';
+    if (useCamera) input.setAttribute('capture', 'environment');
+    input.multiple = !useCamera;
+    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
 
-    try {
-      await html5QrCode.start(
-        { facingMode: { exact: 'environment' } },
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 120 },
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39
-          ]
-        },
-        async (decodedText, decodedResult) => {
-          const format = decodedResult.result.format.formatName.toLowerCase().replace(' ', '_');
-          newCode = [decodedText, format];
-          localStorage.setItem('scanner-pending', JSON.stringify(newCode));
-          await closeCamera();
-          document.getElementById('btn-confirmar').style.display = 'block';
-          setStatus('Código lido — confirme para salvar', 'success');
-        },
-        () => {} // erros de frame ignorados
-      );
-    } catch(e) {
-      // fallback sem "exact"
-      try {
-        await html5QrCode.start(
-          { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: { width: 280, height: 120 },
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39
-            ]
-          },
-          async (decodedText, decodedResult) => {
-            const format = decodedResult.result.format.formatName.toLowerCase().replace(' ', '_');
-            newCode = [decodedText, format];
-            localStorage.setItem('scanner-pending', JSON.stringify(newCode));
-            await closeCamera();
-            document.getElementById('btn-confirmar').style.display = 'block';
-            setStatus('Código lido — confirme para salvar', 'success');
-          },
-          () => {}
-        );
-      } catch(e2) {
-        closeCamera();
-        alert('Não foi possível acessar a câmera. Verifique as permissões.');
-      }
-    }
-  }
+    input.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      input.remove();
+      for (const file of files) await processBlob(file);
+    });
 
-  async function closeCamera() {
-    document.getElementById('camera-modal').classList.remove('open');
-    if (html5QrCode) {
-      try {
-        const state = html5QrCode.getState();
-        if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
-          await html5QrCode.stop();
-        }
-      } catch(e) {}
-      html5QrCode = null;
-    }
-  }
-
-  // ── Galeria ───────────────────────────────────────────────────────────────
-  async function onPhoto(event) {
-    const files = Array.from(event.target.files);
-    // Recria o input para evitar bug de "preso" no Android
-    resetGalleryInput();
-    if (!files.length) return;
-    for (const file of files) await processBlob(file);
-  }
-
-  function resetGalleryInput() {
-    const old = document.getElementById('gallery-input');
-    const newInput = document.createElement('input');
-    newInput.type = 'file';
-    newInput.accept = 'image/*';
-    newInput.multiple = true;
-    newInput.id = 'gallery-input';
-    newInput.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;';
-    newInput.addEventListener('change', onPhoto);
-    old.parentNode.replaceChild(newInput, old);
+    document.body.appendChild(input);
+    input.click();
   }
 
   // ── Processamento de imagem ───────────────────────────────────────────────
@@ -571,8 +434,7 @@
     setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
   }
 
-  async function doLogout() {
-    await closeCamera();
+  function doLogout() {
     currentUser = '';
     sessionHistory = [];
     newCode = [];

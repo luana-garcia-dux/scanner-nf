@@ -98,6 +98,7 @@
 
     .btn-camera-wrap { position: relative; flex: 1; }
 
+    /* container do input file (galeria) */
     .btn-camera-wrap input[type="file"] {
       position: absolute;
       inset: 0; width: 100%; height: 100%;
@@ -115,11 +116,54 @@
       font-family: 'Poppins', sans-serif;
       font-weight: 500;
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      pointer-events: none;
+      cursor: pointer;
     }
 
     .btn-camera.gallery { background: #444; }
-    .btn-camera svg { width: 22px; height: 22px; }
+    .btn-camera svg { width: 22px; height: 22px; pointer-events: none; }
+
+    /* Câmera — botão direto (não usa input file) */
+    #btn-camera-real {
+      pointer-events: auto;
+    }
+
+    /* Vídeo câmera traseira */
+    #camera-modal {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: #000;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #camera-modal.open { display: flex; }
+
+    #camera-video {
+      width: 100%; max-height: 80vh;
+      object-fit: cover;
+    }
+
+    .camera-controls {
+      display: flex; gap: 20px; padding: 20px;
+      width: 100%; justify-content: center; align-items: center;
+    }
+
+    .btn-capture {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid #888;
+      cursor: pointer;
+    }
+    .btn-capture:active { opacity: 0.7; }
+
+    .btn-cancel-cam {
+      font-size: 14px; color: #fff;
+      background: transparent; border: 1px solid #555;
+      padding: 10px 20px; border-radius: 10px;
+      font-family: 'Poppins', sans-serif; cursor: pointer;
+    }
+
+    canvas#snap-canvas { display: none; }
 
     .preview-wrap {
       display: none;
@@ -215,6 +259,16 @@
 </head>
 <body>
 
+<!-- MODAL CÂMERA TRASEIRA -->
+<div id="camera-modal">
+  <video id="camera-video" autoplay playsinline muted></video>
+  <canvas id="snap-canvas"></canvas>
+  <div class="camera-controls">
+    <button class="btn-cancel-cam" onclick="closeCamera()">Cancelar</button>
+    <button class="btn-capture" onclick="capturePhoto()"></button>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-screen" class="screen active">
   <div class="login-wrapper">
@@ -255,16 +309,18 @@
   </div>
 
   <div style="display:flex; gap:10px; margin-bottom:1rem;">
-    <div class="btn-camera-wrap">
-      <input type="file" accept="image/*;capture=camera" capture id="camera-input" onchange="onPhoto(event)">
-      <div class="btn-camera">
+    <!-- CÂMERA: botão direto, sem input file -->
+    <div class="btn-camera-wrap" style="position:static;">
+      <button class="btn-camera" id="btn-camera-real" onclick="openCamera()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
           <circle cx="12" cy="13" r="4"/>
         </svg>
         Câmera
-      </div>
+      </button>
     </div>
+
+    <!-- GALERIA: input file normal -->
     <div class="btn-camera-wrap">
       <input type="file" accept="image/*" multiple id="gallery-input" onchange="onPhoto(event)">
       <div class="btn-camera gallery">
@@ -309,7 +365,9 @@
   let newCode = [];
   let sessionHistory = [];
   let detector = null;
+  let cameraStream = null;
 
+  // ── Detector ──────────────────────────────────────────────────────────────
   async function initDetector() {
     if (!('BarcodeDetector' in window)) return;
     try {
@@ -319,6 +377,113 @@
     } catch(e) {}
   }
 
+  // ── Câmera traseira via getUserMedia ──────────────────────────────────────
+  async function openCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+    } catch(e) {
+      // fallback: sem "exact" — aceita qualquer câmera disponível
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
+        });
+      } catch(e2) {
+        alert('Não foi possível acessar a câmera. Verifique as permissões.');
+        return;
+      }
+    }
+    const video = document.getElementById('camera-video');
+    video.srcObject = cameraStream;
+    document.getElementById('camera-modal').classList.add('open');
+  }
+
+  function closeCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    document.getElementById('camera-video').srcObject = null;
+    document.getElementById('camera-modal').classList.remove('open');
+  }
+
+  async function capturePhoto() {
+    const video  = document.getElementById('camera-video');
+    const canvas = document.getElementById('snap-canvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    closeCamera();
+
+    canvas.toBlob(async (blob) => {
+      await processBlob(blob);
+    }, 'image/jpeg', 0.95);
+  }
+
+  // ── Galeria ───────────────────────────────────────────────────────────────
+  async function onPhoto(event) {
+    const files = Array.from(event.target.files);
+    // Recria o input para evitar bug de "preso" no Android
+    resetGalleryInput();
+    if (!files.length) return;
+    for (const file of files) await processBlob(file);
+  }
+
+  function resetGalleryInput() {
+    const old = document.getElementById('gallery-input');
+    const newInput = document.createElement('input');
+    newInput.type = 'file';
+    newInput.accept = 'image/*';
+    newInput.multiple = true;
+    newInput.id = 'gallery-input';
+    newInput.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;';
+    newInput.addEventListener('change', onPhoto);
+    old.parentNode.replaceChild(newInput, old);
+  }
+
+  // ── Processamento de imagem ───────────────────────────────────────────────
+  async function processBlob(blob) {
+    if (!detector) {
+      setStatus('BarcodeDetector não suportado — use Chrome Android', 'error');
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const previewWrap = document.getElementById('preview-wrap');
+    const previewImg  = document.getElementById('preview-img');
+    const overlay     = document.getElementById('processing-overlay');
+
+    previewImg.src = url;
+    previewWrap.style.display = 'block';
+    overlay.style.display = 'flex';
+    document.getElementById('overlay-text').textContent = 'Lendo código...';
+    setStatus('Analisando imagem...', 'loading');
+
+    try {
+      const bitmap   = await createImageBitmap(blob);
+      const barcodes = await detector.detect(bitmap);
+      overlay.style.display = 'none';
+
+      if (barcodes.length > 0) {
+        newCode = [barcodes[0].rawValue, barcodes[0].format];
+        localStorage.setItem('scanner-pending', JSON.stringify(newCode));
+        document.getElementById('btn-confirmar').style.display = 'block';
+        setStatus('Código lido — confirme para salvar', 'success');
+      } else {
+        setStatus('Nenhum código identificado — tente mais perto', 'error');
+      }
+    } catch(e) {
+      overlay.style.display = 'none';
+      setStatus('Erro ao processar imagem', 'error');
+    }
+
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function getInitials(name) {
     return name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   }
@@ -345,6 +510,7 @@
     document.getElementById('history-container').style.display = 'block';
   }
 
+  // ── Login / Logout ────────────────────────────────────────────────────────
   window.addEventListener('load', async () => {
     await initDetector();
 
@@ -358,12 +524,8 @@
       setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
       const savedHistory = localStorage.getItem('scanner-history');
-      if (savedHistory) {
-        sessionHistory = JSON.parse(savedHistory);
-        renderHistory();
-      }
+      if (savedHistory) { sessionHistory = JSON.parse(savedHistory); renderHistory(); }
 
-      // Restaura leitura pendente (caso Android tenha recarregado antes de confirmar)
       const savedPending = localStorage.getItem('scanner-pending');
       if (savedPending) {
         newCode = JSON.parse(savedPending);
@@ -377,28 +539,6 @@
     const name = document.getElementById('login-name').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
 
-    setStatus('Verificando acesso...', 'loading');
-
-    /*try {
-      const res = await fetch('https://n8n-dux.duckdns.org/webhook/login-scan-nf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: name })
-      });
-      const data = await res.json();
-
-      if (!res.ok || data.autorizado === false) {
-        document.getElementById('login-screen').classList.add('active');
-        alert(data.mensagem || 'Acesso negado. Verifique seu e-mail.');
-        setStatus('');
-        return;
-      } 
-    } catch(e) {
-    alert('Erro ao conectar com o servidor. Tente novamente.');
-    setStatus('');
-    return;
-    }*/
-    
     currentUser = name;
     localStorage.setItem('scanner-user', name);
     document.getElementById('user-name-display').textContent = name;
@@ -409,6 +549,7 @@
   }
 
   function doLogout() {
+    closeCamera();
     currentUser = '';
     sessionHistory = [];
     newCode = [];
@@ -427,61 +568,7 @@
     document.getElementById('login-screen').classList.add('active');
   }
 
-  async function onPhoto(event) {
-    const files = Array.from(event.target.files);
-    if (!files.length) return;
-    event.target.value = null;
-
-    if (!detector) {
-      setStatus('Detector não disponível — use Chrome Android', 'error');
-      return;
-    }
-
-    const total = files.length;
-    let success = 0, failed = 0;
-
-    const previewWrap = document.getElementById('preview-wrap');
-    const previewImg  = document.getElementById('preview-img');
-    const overlay     = document.getElementById('processing-overlay');
-    const overlayText = document.getElementById('overlay-text');
-
-    for (let i = 0; i < files.length; i++) {
-      const url = URL.createObjectURL(files[i]);
-      previewImg.src = url;
-      previewWrap.style.display = 'block';
-      overlay.style.display = 'flex';
-      overlayText.textContent = total > 1 ? `Lendo ${i + 1} de ${total}...` : 'Lendo código...';
-      setStatus(total > 1 ? `Analisando ${i + 1} de ${total}...` : 'Analisando imagem...', 'loading');
-
-      try {
-        const bitmap   = await createImageBitmap(files[i]);
-        const barcodes = await detector.detect(bitmap);
-        overlay.style.display = 'none';
-        if (barcodes.length > 0) {
-          newCode = [barcodes[0].rawValue, barcodes[0].format];
-          localStorage.setItem('scanner-pending', JSON.stringify(newCode));
-          document.getElementById('btn-confirmar').style.display = 'block';
-          success++;
-        } else {
-          failed++;
-        }
-      } catch(e) {
-        overlay.style.display = 'none';
-        failed++;
-      }
-      URL.revokeObjectURL(url);
-    }
-
-    if (total === 1) {
-      if (success) setStatus('Código lido — confirme para salvar', 'success');
-      else setStatus('Nenhum código identificado — tente novamente mais perto', 'error');
-    } else if (total > 1) {
-      if (failed === 0) setStatus(`${total} códigos lidos — confirme para salvar`, 'success');
-      else if (success === 0) setStatus(`Nenhum código identificado nas ${total} imagens`, 'error');
-      else setStatus(`${success} lido${success > 1 ? 's' : ''}, ${failed} não identificado${failed > 1 ? 's' : ''}`, '');
-    }
-  }
-
+  // ── Confirmar leitura ─────────────────────────────────────────────────────
   function onBarcodeFound() {
     document.getElementById('btn-confirmar').style.display = 'none';
     if (!newCode.length) return;

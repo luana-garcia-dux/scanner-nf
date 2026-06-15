@@ -379,7 +379,7 @@
 
     setStatus('Verificando acesso...', 'loading');
 
-    try {
+    /*try {
       const res = await fetch('https://n8n-dux.duckdns.org/webhook/login-scan-nf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -397,7 +397,7 @@
     alert('Erro ao conectar com o servidor. Tente novamente.');
     setStatus('');
     return;
-    }
+    }*/
     
     currentUser = name;
     localStorage.setItem('scanner-user', name);

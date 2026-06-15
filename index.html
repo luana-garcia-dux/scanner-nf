@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Scanner NF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
@@ -133,28 +134,28 @@
       position: fixed; inset: 0; z-index: 100;
       background: #000;
       flex-direction: column;
-      align-items: center; justify-content: center;
+      align-items: center; justify-content: flex-start;
     }
     #camera-modal.open { display: flex; }
 
-    #camera-video {
-      width: 100%; max-height: 80vh;
-      object-fit: cover;
+    #qr-reader {
+      width: 100%;
+      max-width: 480px;
     }
+
+    /* Esconde elementos desnecessários do html5-qrcode */
+    #qr-reader__header_message,
+    #qr-reader__status_span,
+    #qr-reader__dashboard_section_csr span,
+    #qr-reader select { display: none !important; }
+
+    #qr-reader__dashboard { background: #000; padding: 0; }
+    #qr-reader__dashboard_section_swaplink { color: #fff; font-size: 13px; }
 
     .camera-controls {
-      display: flex; gap: 20px; padding: 20px;
+      display: flex; gap: 20px; padding: 16px;
       width: 100%; justify-content: center; align-items: center;
     }
-
-    .btn-capture {
-      width: 68px; height: 68px;
-      border-radius: 50%;
-      background: #fff;
-      border: 4px solid #888;
-      cursor: pointer;
-    }
-    .btn-capture:active { opacity: 0.7; }
 
     .btn-cancel-cam {
       font-size: 14px; color: #fff;
@@ -261,11 +262,9 @@
 
 <!-- MODAL CÂMERA TRASEIRA -->
 <div id="camera-modal">
-  <video id="camera-video" autoplay playsinline muted></video>
-  <canvas id="snap-canvas"></canvas>
+  <div id="qr-reader"></div>
   <div class="camera-controls">
     <button class="btn-cancel-cam" onclick="closeCamera()">Cancelar</button>
-    <button class="btn-capture" onclick="capturePhoto()"></button>
   </div>
 </div>
 
@@ -365,7 +364,7 @@
   let newCode = [];
   let sessionHistory = [];
   let detector = null;
-  let cameraStream = null;
+  let html5QrCode = null;
 
   // ── Detector ──────────────────────────────────────────────────────────────
   async function initDetector() {
@@ -377,50 +376,74 @@
     } catch(e) {}
   }
 
-  // ── Câmera traseira via getUserMedia ──────────────────────────────────────
+  // ── Câmera traseira via html5-qrcode ──────────────────────────────────────
   async function openCamera() {
+    document.getElementById('camera-modal').classList.add('open');
+
+    html5QrCode = new Html5Qrcode('qr-reader');
+
     try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false
-      });
+      await html5QrCode.start(
+        { facingMode: { exact: 'environment' } },
+        {
+          fps: 10,
+          qrbox: { width: 280, height: 120 },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+          ]
+        },
+        async (decodedText, decodedResult) => {
+          const format = decodedResult.result.format.formatName.toLowerCase().replace(' ', '_');
+          newCode = [decodedText, format];
+          localStorage.setItem('scanner-pending', JSON.stringify(newCode));
+          await closeCamera();
+          document.getElementById('btn-confirmar').style.display = 'block';
+          setStatus('Código lido — confirme para salvar', 'success');
+        },
+        () => {} // erros de frame ignorados
+      );
     } catch(e) {
-      // fallback: sem "exact" — aceita qualquer câmera disponível
+      // fallback sem "exact"
       try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-          audio: false
-        });
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 280, height: 120 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39
+            ]
+          },
+          async (decodedText, decodedResult) => {
+            const format = decodedResult.result.format.formatName.toLowerCase().replace(' ', '_');
+            newCode = [decodedText, format];
+            localStorage.setItem('scanner-pending', JSON.stringify(newCode));
+            await closeCamera();
+            document.getElementById('btn-confirmar').style.display = 'block';
+            setStatus('Código lido — confirme para salvar', 'success');
+          },
+          () => {}
+        );
       } catch(e2) {
+        closeCamera();
         alert('Não foi possível acessar a câmera. Verifique as permissões.');
-        return;
       }
     }
-    const video = document.getElementById('camera-video');
-    video.srcObject = cameraStream;
-    document.getElementById('camera-modal').classList.add('open');
   }
 
-  function closeCamera() {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(t => t.stop());
-      cameraStream = null;
-    }
-    document.getElementById('camera-video').srcObject = null;
+  async function closeCamera() {
     document.getElementById('camera-modal').classList.remove('open');
-  }
-
-  async function capturePhoto() {
-    const video  = document.getElementById('camera-video');
-    const canvas = document.getElementById('snap-canvas');
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    closeCamera();
-
-    canvas.toBlob(async (blob) => {
-      await processBlob(blob);
-    }, 'image/jpeg', 0.95);
+    if (html5QrCode) {
+      try {
+        const state = html5QrCode.getState();
+        if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+          await html5QrCode.stop();
+        }
+      } catch(e) {}
+      html5QrCode = null;
+    }
   }
 
   // ── Galeria ───────────────────────────────────────────────────────────────
@@ -548,8 +571,8 @@
     setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
   }
 
-  function doLogout() {
-    closeCamera();
+  async function doLogout() {
+    await closeCamera();
     currentUser = '';
     sessionHistory = [];
     newCode = [];

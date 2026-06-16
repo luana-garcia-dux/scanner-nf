@@ -258,6 +258,11 @@
         <input type="email" id="login-name" autocomplete="off"
           onkeydown="if(event.key==='Enter') doLogin()">
       </div>
+      <div class="field">
+        <label>PIN</label>
+        <input type="number" id="password" autocomplete="off"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
       <button class="btn-primary" onclick="doLogin()">Entrar</button>
     </div>
   </div>
@@ -545,7 +550,11 @@
   // ── Login / Logout ────────────────────────────────────────────────────────
   function doLogin() {
     const name = document.getElementById('login-name').value.trim();
+    const pin = document.getElementById('password').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
+    if (!pin) { alert('Digite a senha para entrar.'); return; }
+
+    
 
     currentUser = name;
     localStorage.setItem('scanner-user', name);

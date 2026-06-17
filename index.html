@@ -706,16 +706,14 @@
   
       if (!result.driver) {
         showPopup('error', 'Usuário ou senha inválida. Tente novamente.');
-        const pin = document.getElementById('password');
-        pin.value = ''; pin.focus();
         return;
       }
       
       console.log('Sucesso:', result.message);
+      pin.value = '';
       
       currentUser = result.driver;
-      localStorage.setItem('scanner-user', currentUser);
-      document.getElementById('password').value = '';
+      localStorage.setItem('scanner-user', currentUser);      
       document.getElementById('user-name-display').textContent = currentUser;
       document.getElementById('avatar-initials').textContent = getInitials(currentUser);
       document.getElementById('login-screen').classList.remove('active');

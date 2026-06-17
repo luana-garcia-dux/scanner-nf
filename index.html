@@ -679,15 +679,15 @@
   async function doLogin() {
     showLoading('Carregando...');
     
-    const name = document.getElementById('login-name').value.trim();
-    const pin = document.getElementById('password').value.trim();
-    if (!name) { showPopup('error', 'Digite seu e-mail para entrar'); return; }
-    if (!pin) { showPopup('error', 'Digite a senha para entrar.'); return; }
-    
-    const url = 'https://n8n-dux.duckdns.org/webhook-test/login-scan-nf';
-    const body = {"email": name, "pin": pin};
-
     try {
+      const name = document.getElementById('login-name').value.trim();
+      const pin = document.getElementById('password').value.trim();
+      if (!name) { showPopup('error', 'Digite seu e-mail para entrar'); return; }
+      if (!pin) { showPopup('error', 'Digite a senha para entrar.'); return; }
+      
+      const url = 'https://n8n-dux.duckdns.org/webhook-test/login-scan-nf';
+      const body = {"email": name, "pin": pin};
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -696,9 +696,10 @@
         body: JSON.stringify(body)
       });
   
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
+      if (!response.ok) {        
         showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
+        throw new Error(`Erro na requisição: ${response.status}`);
+        return;
       }
   
       const result = await response.json();

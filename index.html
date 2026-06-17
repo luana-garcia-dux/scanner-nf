@@ -260,7 +260,7 @@
       </div>
       <div class="field">
         <label>PIN</label>
-        <input type="number" id="password" autocomplete="off"
+        <input type="number" id="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)"
           onkeydown="if(event.key==='Enter') doLogin()">
       </div>
       <button class="btn-primary" onclick="doLogin()">Entrar</button>
@@ -573,13 +573,13 @@
   });
 
   // ── Login / Logout ────────────────────────────────────────────────────────
-  function doLogin() {
+  async function doLogin() {
     const name = document.getElementById('login-name').value.trim();
     const pin = document.getElementById('password').value.trim();
     if (!name) { alert('Digite seu e-mail para entrar.'); return; }
     if (!pin) { alert('Digite a senha para entrar.'); return; }
-    /*
-    const url = 'https://exemplo.com';
+    
+    const url = 'https://n8n-dux.duckdns.org/webhook-test/login-scan-nf';
     const body = {"email": name, "pin": pin};
 
     try {
@@ -597,20 +597,20 @@
   
       const result = await response.json();
   
-      if (!result) { alert('Usuário ou senha inválida. Tente novamente.'); return; };
-      console.log('Sucesso:', result);
+      if (!result.driver) { alert('Usuário ou senha inválida. Tente novamente.'); return; };
+      console.log('Sucesso:', result.message);
+
+      currentUser = result.driver;
+      localStorage.setItem('scanner-user', currentUser);
+      document.getElementById('user-name-display').textContent = currentUser;
+      document.getElementById('avatar-initials').textContent = getInitials(currentUser);
+      document.getElementById('login-screen').classList.remove('active');
+      document.getElementById('scanner-screen').classList.add('active');
+      setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
       
     } catch (erro) {
       console.error('Falha ao comunicar com a API:', erro);
     }
-    */
-    currentUser = name;
-    localStorage.setItem('scanner-user', currentUser);
-    document.getElementById('user-name-display').textContent = currentUser;
-    document.getElementById('avatar-initials').textContent = getInitials(currentUser);
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('scanner-screen').classList.add('active');
-    setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
   }
 
   function doLogout() {

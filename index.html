@@ -9,7 +9,6 @@
 </head>
 
 <body>
-
     <!-- LOGIN -->
     <div id="login-screen" class="screen active">
         <div class="login-wrapper">
@@ -38,6 +37,39 @@
                     <input type="number" id="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" onkeydown="if(event.key==='Enter') doLogin()">
                 </div>
                 <button class="btn-primary" onclick="doLogin()">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PAGE -->
+    <div id="admin-screen" class="screen">
+        <div class="header">
+            <div class="user-badge">
+                <span class="user-name">Painel de usuários</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-logout" onclick="doLogout()">Sair</button>
+            </div>
+        </div>
+    
+        <div class="admin-container">
+            <div class="admin-toolbar">
+                <h2>Usuários</h2>
+                <button class="btn-primary" onclick="openUserForm()">Cadastrar usuário</button>
+            </div>
+    
+            <div class="table-wrap">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Perfil</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -98,6 +130,25 @@
         <div class="history" id="history-container" style="display:none">
             <div class="history-title">Leituras desta sessão</div>
             <div id="history-list"></div>
+        </div>
+    </div>
+
+    <div id="user-form-modal" class="popup-overlay" onclick="if(event.target===this) closeUserForm()">
+        <div class="form-box">
+            <h3>Cadastrar usuário</h3>
+            <div class="field"><label>Nome</label><input type="text" id="f-nome"></div>
+            <div class="field"><label>E-mail</label><input type="email" id="f-email"></div>            
+            <div class="field"><label>Permissão</label>
+                <select id="f-permissao">
+                    <option value="">Selecione uma opção</option>
+                    <option value="user">Motorista</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn-secondary" onclick="closeUserForm()">Cancelar</button>
+                <button class="btn-primary" onclick="saveUser()">Salvar</button>
+            </div>
         </div>
     </div>
 

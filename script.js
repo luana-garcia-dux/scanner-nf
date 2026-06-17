@@ -297,6 +297,7 @@ async function doLogin() {
     showLoading('Carregando...');
 
     try {
+        const page = 'admin-screen';
         const name = document.getElementById('login-name').value.trim();
         const pin = document.getElementById('password').value.trim();
         if (!name) {
@@ -330,20 +331,22 @@ async function doLogin() {
 
         const result = await response.json();
 
-        if (!result.driver) {
+        if (!result.user) {
             showPopup('error', 'Usuário ou senha inválida. Tente novamente.');
             return;
         }
 
         console.log('Sucesso:', result.message);
-        pin.value = '';
 
-        currentUser = result.driver;
+        if (result.permission == "user") page = 'scanner-screen';
+        
+        pin.value = '';
+        currentUser = result.user;
         localStorage.setItem('scanner-user', currentUser);
         document.getElementById('user-name-display').textContent = currentUser;
         document.getElementById('avatar-initials').textContent = getInitials(currentUser);
         document.getElementById('login-screen').classList.remove('active');
-        document.getElementById('scanner-screen').classList.add('active');
+        document.getElementById(page).classList.add('active');        
         setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
     } catch (erro) {

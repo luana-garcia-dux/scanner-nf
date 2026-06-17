@@ -1,121 +1,122 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="stylesheet" href="style.css">
-  <title>Scanner NF</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css">
+    <title>Scanner NF</title>
 </head>
+
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen" class="screen active">
-  <div class="login-wrapper">
-    <div class="logo">
-      <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="56" height="56" rx="14" fill="#B92633"/>
-        <rect x="10" y="16" width="3" height="24" fill="white"/>
-        <rect x="15" y="16" width="2" height="24" fill="white"/>
-        <rect x="19" y="16" width="4" height="24" fill="white"/>
-        <rect x="25" y="16" width="2" height="24" fill="white"/>
-        <rect x="29" y="16" width="3" height="24" fill="white"/>
-        <rect x="34" y="16" width="2" height="24" fill="white"/>
-        <rect x="38" y="16" width="4" height="24" fill="white"/>
-        <rect x="44" y="16" width="2" height="24" fill="white"/>
-      </svg>
-      <h1>Scanner NF</h1>
-      <p>Leitura de código de barras</p>
+    <!-- LOGIN -->
+    <div id="login-screen" class="screen active">
+        <div class="login-wrapper">
+            <div class="logo">
+                <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="56" height="56" rx="14" fill="#B92633" />
+                    <rect x="10" y="16" width="3" height="24" fill="white" />
+                    <rect x="15" y="16" width="2" height="24" fill="white" />
+                    <rect x="19" y="16" width="4" height="24" fill="white" />
+                    <rect x="25" y="16" width="2" height="24" fill="white" />
+                    <rect x="29" y="16" width="3" height="24" fill="white" />
+                    <rect x="34" y="16" width="2" height="24" fill="white" />
+                    <rect x="38" y="16" width="4" height="24" fill="white" />
+                    <rect x="44" y="16" width="2" height="24" fill="white" />
+                </svg>
+                <h1>Scanner NF</h1>
+                <p>Leitura de código de barras</p>
+            </div>
+            <div class="card">
+                <div class="field">
+                    <label>E-mail</label>
+                    <input type="email" id="login-name" autocomplete="off" onkeydown="if(event.key==='Enter') doLogin()">
+                </div>
+                <div class="field">
+                    <label>PIN</label>
+                    <input type="number" id="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" onkeydown="if(event.key==='Enter') doLogin()">
+                </div>
+                <button class="btn-primary" onclick="doLogin()">Entrar</button>
+            </div>
+        </div>
     </div>
-    <div class="card">
-      <div class="field">
-        <label>E-mail</label>
-        <input type="email" id="login-name" autocomplete="off"
-          onkeydown="if(event.key==='Enter') doLogin()">
-      </div>
-      <div class="field">
-        <label>PIN</label>
-        <input type="number" id="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)"
-          onkeydown="if(event.key==='Enter') doLogin()">
-      </div>
-      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+
+    <!-- SCANNER -->
+    <div id="scanner-screen" class="screen">
+        <div class="header">
+            <div class="user-badge">
+                <div class="avatar" id="avatar-initials">--</div>
+                <span class="user-name" id="user-name-display">Usuário</span>
+            </div>
+            <button class="btn-logout" onclick="doLogout()">Sair</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:1rem;">
+            <button class="btn-camera" onclick="triggerInput(true)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                </svg>
+                Câmera
+            </button>
+            <button class="btn-camera gallery" onclick="triggerInput(false)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Galeria
+            </button>
+        </div>
+
+        <div class="preview-wrap" id="preview-wrap">
+            <img id="preview-img" src="" alt="Preview">
+            <div class="processing-overlay" id="processing-overlay">
+                <div class="spinner"></div>
+                <span id="overlay-text">Lendo código...</span>
+            </div>
+        </div>
+
+        <div id="status-bar" class="status-bar">Toque em Câmera para fotografar cada código</div>
+
+        <!-- Leituras pendentes (lote) -->
+        <div class="pending" id="pending-container" style="display:none">
+            <div class="pending-title">Leituras pendentes (<span id="pending-count">0</span>)</div>
+            <div id="pending-list"></div>
+            <button id="btn-confirmar" class="btn-confirmar" onclick="confirmAll()">
+                ✓ Confirmar envio
+            </button>
+        </div>
+
+        <div class="result-card">
+            <div class="result-label">Último código salvo</div>
+            <div class="result-value empty" id="last-code">Nenhum código salvo ainda</div>
+            <div class="result-meta" id="last-meta"></div>
+        </div>
+
+        <div class="history" id="history-container" style="display:none">
+            <div class="history-title">Leituras desta sessão</div>
+            <div id="history-list"></div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- SCANNER -->
-<div id="scanner-screen" class="screen">
-  <div class="header">
-    <div class="user-badge">
-      <div class="avatar" id="avatar-initials">--</div>
-      <span class="user-name" id="user-name-display">Usuário</span>
+    <div id="popup" class="popup-overlay" onclick="if(event.target===this) closePopup()">
+        <div class="popup-box">
+            <div class="popup-icon"></div>
+            <div class="popup-msg"></div>
+            <button class="popup-btn" onclick="closePopup()">OK</button>
+        </div>
     </div>
-    <button class="btn-logout" onclick="doLogout()">Sair</button>
-  </div>
 
-  <div style="display:flex; gap:10px; margin-bottom:1rem;">
-    <button class="btn-camera" onclick="triggerInput(true)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-      Câmera
-    </button>
-    <button class="btn-camera gallery" onclick="triggerInput(false)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
-      </svg>
-      Galeria
-    </button>
-  </div>
-
-  <div class="preview-wrap" id="preview-wrap">
-    <img id="preview-img" src="" alt="Preview">
-    <div class="processing-overlay" id="processing-overlay">
-      <div class="spinner"></div>
-      <span id="overlay-text">Lendo código...</span>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-box">
+            <div class="loading-spinner"></div>
+            <div class="loading-msg">Carregando...</div>
+        </div>
     </div>
-  </div>
 
-  <div id="status-bar" class="status-bar">Toque em Câmera para fotografar cada código</div>
-
-  <!-- Leituras pendentes (lote) -->
-  <div class="pending" id="pending-container" style="display:none">
-    <div class="pending-title">Leituras pendentes (<span id="pending-count">0</span>)</div>
-    <div id="pending-list"></div>
-    <button id="btn-confirmar" class="btn-confirmar" onclick="confirmAll()">
-      ✓ Confirmar envio
-    </button>
-  </div>
-
-  <div class="result-card">
-    <div class="result-label">Último código salvo</div>
-    <div class="result-value empty" id="last-code">Nenhum código salvo ainda</div>
-    <div class="result-meta" id="last-meta"></div>
-  </div>
-
-  <div class="history" id="history-container" style="display:none">
-    <div class="history-title">Leituras desta sessão</div>
-    <div id="history-list"></div>
-  </div>
-</div>
-
-  <div id="popup" class="popup-overlay" onclick="if(event.target===this) closePopup()">
-    <div class="popup-box">
-      <div class="popup-icon"></div>
-      <div class="popup-msg"></div>
-      <button class="popup-btn" onclick="closePopup()">OK</button>
-    </div>
-  </div>
-
-  <div id="loading" class="loading-overlay">
-    <div class="loading-box">
-      <div class="loading-spinner"></div>
-      <div class="loading-msg">Carregando...</div>
-    </div>
-  </div>
-  
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
+
 </html>

@@ -43,30 +43,26 @@
 
     <!-- ADMIN PAGE -->
     <div id="admin-screen" class="screen">
-        <div class="header">
-            <div class="user-badge">
-                <span class="user-name">Painel de usuários</span>
-            </div>
-            <div class="header-actions">
-                <button class="btn-logout" onclick="doLogout()">Sair</button>
-            </div>
-        </div>
-    
         <div class="admin-container">
+            <div class="header">
+                <div class="user-badge">
+                    <span class="user-name">Painel de usuários</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-users" onclick="backToScanner()">Voltar</button>
+                    <button class="btn-logout" onclick="doLogout()">Sair</button>
+                </div>
+            </div>
+    
             <div class="admin-toolbar">
                 <h2>Usuários</h2>
-                <button class="btn-primary" onclick="openUserForm()">Cadastrar usuário</button>
+                <button class="btn-primary" onclick="openUserForm()">+ Cadastrar usuário</button>
             </div>
     
             <div class="table-wrap">
                 <table class="users-table">
                     <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>E-mail</th>
-                            <th>Perfil</th>
-                            <th>Ações</th>
-                        </tr>
+                        <tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ações</th></tr>
                     </thead>
                     <tbody id="users-tbody"></tbody>
                 </table>

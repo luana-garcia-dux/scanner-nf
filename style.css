@@ -16,6 +16,10 @@
      max-width: 480px;
      margin: 0 auto;
 }
+#admin-screen {
+    max-width: none;
+    padding: 0;
+}
  .screen.active {
      display: block;
 }

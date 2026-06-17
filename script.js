@@ -3,6 +3,11 @@ let pendingReadings = []; // [{ value, format, time }]
 let sessionHistory = [];
 let detector = null;
 
+const LOGIN_URL = "https://n8n-dux.duckdns.org/webhook-test/login-scan-nf";
+const LIST_URL = "https://n8n-dux.duckdns.org/webhook-test/insert-barcode";
+const USERS_URL = "https://n8n-dux.duckdns.org/webhook-test/users"
+const USER_URL = "https://n8n-dux.duckdns.org/webhook-test/new-user";
+
 let popupCallback = null;
 
 function showPopup(type, message, onClose) {
@@ -212,11 +217,10 @@ function confirmAll() {
         });
     });
     /*
-    const url = 'https://exemplo.com';
     const body = pendingReadings;
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(LIST_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -292,12 +296,100 @@ window.addEventListener('load', async () => {
     }
 });
 
+function openUserForm() {
+    document.getElementById('f-nome').value  = '';
+    document.getElementById('f-email').value = '';
+    document.getElementById('f-pin').value   = '';
+    document.getElementById('user-form-modal').classList.add('show');
+}
+
+function closeUserForm() {
+    document.getElementById('user-form-modal').classList.remove('show');
+}
+
+async function loadUsers() {
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+    try {
+        const response = await fetch(USERS_URL);
+
+        if (!response.ok) {
+            showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
+            return;
+        }
+
+        const users = await response.json();
+        renderUsers(users);
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="4">Erro ao carregar usuários.</td></tr>';
+        showPopup('error', 'Não foi possível carregar os usuários.');
+    }    
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('users-tbody');
+    if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">Nenhum usuário cadastrado.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${u.nome  ?? ''}</td>
+            <td>${u.email ?? ''}</td>
+            <td>${u.permissao ?? ''}</td>
+            <td><button class="btn-link" onclick="editUser('${u.email}')">Editar</button></td>
+        </tr>
+    `).join('');
+}
+
+async function saveUser() {
+    const name = document.getElementById('login-name').value.trim();
+    const email = document.getElementById('login-name').value.trim();
+    const type = document.getElementById('login-name').value.trim();
+
+    if (!name || !email || !type) {
+        showPopup('error', 'Preencha todos os campos obrigatórios');
+        return;
+    }
+
+    showLoading('Salvando...');
+
+    try {
+        const body = {
+            "name": name,
+            "email": email,
+            "permission": type
+        };
+
+        const response = await fetch(USER_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
+            return;
+        }
+
+        closeUserForm();
+        showPopup('success', 'Usuário cadastrado!');
+        await loadUsers();
+    } catch(e) {
+        showPopup('error', 'Erro ao salvar usuário.');
+    } finally {
+        hideLoading();
+    }
+}
+
 // ── Login / Logout ────────────────────────────────────────────────────────
 async function doLogin() {
     showLoading('Carregando...');
-
+    
     try {
-        const page = 'admin-screen';
+        var page = 'admin-screen';
         const name = document.getElementById('login-name').value.trim();
         const pin = document.getElementById('password').value.trim();
         if (!name) {
@@ -309,13 +401,12 @@ async function doLogin() {
             return;
         }
 
-        const url = 'https://n8n-dux.duckdns.org/webhook-test/login-scan-nf';
         const body = {
             "email": name,
             "pin": pin
         };
 
-        const response = await fetch(url, {
+        const response = await fetch(LOGIN_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -325,7 +416,6 @@ async function doLogin() {
 
         if (!response.ok) {
             showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
-            throw new Error(`Erro na requisição: ${response.status}`);
             return;
         }
 
@@ -340,17 +430,17 @@ async function doLogin() {
 
         if (result.permission == "user") page = 'scanner-screen';
         
-        pin.value = '';
         currentUser = result.user;
         localStorage.setItem('scanner-user', currentUser);
         document.getElementById('user-name-display').textContent = currentUser;
         document.getElementById('avatar-initials').textContent = getInitials(currentUser);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(page).classList.add('active');        
+        document.getElementById('password').value = '';
         setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
-    } catch (erro) {
-        console.error('Falha ao comunicar com a API:', erro);
+    } catch (e) {
+        console.error('Falha ao comunicar com a API:', e);
         showPopup('error', 'Há algo errado. Entre em contato com o time interno da Dux Trucking.');
     } finally {
         hideLoading();

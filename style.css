@@ -102,7 +102,7 @@ body {
 
 .field label {
 	display: block;
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 500;
 	color: #555;
 	margin-bottom: 6px;
@@ -115,7 +115,7 @@ input[type="number"] {
 	padding: 12px 14px;
 	border: 1px solid #ddd;
 	border-radius: 10px;
-	font-size: 14px;
+	font-size: 12px;
 	font-family: 'Poppins', sans-serif;
 	color: #1a1a1a;
 	background: #fafafa;
@@ -196,7 +196,7 @@ select:focus {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1rem;
+	padding: 1rem 3rem;
 	border-bottom: 1px solid #E4E4E7;
 }
 
@@ -239,7 +239,7 @@ select:focus {
 .camera-actions {
 	display: flex;
     gap: 10px;
-	padding: 1rem;
+	padding: 1rem 3rem;
 }
 
 .btn-camera {
@@ -416,7 +416,7 @@ select:focus {
 	border-radius: 12px;
 	padding: 1rem 1.25rem;
 	border: 1px solid #e5e5e5;
-	margin: 1rem;
+	margin: 0 3rem;
 }
 
 .result-label {
@@ -512,7 +512,7 @@ select:focus {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1rem;
+	padding: 1rem 3rem;
 }
 
 .admin-toolbar .btn-form {
@@ -521,8 +521,7 @@ select:focus {
 
 .table-wrap {
 	overflow-x: auto;
-	padding-left: 1rem;
-	padding-right: 1rem;
+	padding: 0 3rem;
 }
 
 /* rola lateral em tela menor */

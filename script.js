@@ -4,10 +4,10 @@ let pendingReadings = []; // [{ value, format, time }]
 let sessionHistory = [];
 let detector = null;
 
-const LOGIN_URL = "https://n8n-dux.duckdns.org/webhook-test/login-scan-nf";
+const LOGIN_URL = "https://n8n-dux.duckdns.org/webhook/login-scan-nf";
 const LIST_URL = "https://n8n-dux.duckdns.org/webhook-test/insert-barcode";
-const USERS_URL = "https://n8n-dux.duckdns.org/webhook-test/users"
-const USER_URL = "https://n8n-dux.duckdns.org/webhook-test/new-user";
+const USERS_URL = "https://n8n-dux.duckdns.org/webhook/users"
+const USER_URL = "https://n8n-dux.duckdns.org/webhook-test/user";
 
 const MOCK_USERS = [
     { nome: 'João Silva', email: 'joao.silva@dux.com', permissao: 'admin' },
@@ -68,6 +68,11 @@ window.addEventListener('load', async () => {
         document.getElementById('avatar-initials').textContent = getInitials(savedUser);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(savedPage).classList.add('active');
+
+        if (savedPage === 'admin-screen') {
+            loadUsers();
+        }
+
         setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
         const savedHistory = localStorage.getItem('scanner-history');
@@ -106,7 +111,7 @@ async function doLogin() {
     showLoading('Carregando...');
 
     try {
-        var page = 'admin-screen';
+        var page = 'scanner-screen';
         const name = document.getElementById('login-name').value.trim();
         const pin = document.getElementById('password').value.trim();
         if (!name) {
@@ -145,8 +150,8 @@ async function doLogin() {
 
         console.log('Sucesso:', result.message);
 
-        if (result.permission == "user") {
-            page = 'scanner-screen';
+        if (result.permission == "admin") {
+            page = 'admin-screen';
             loadUsers();
         }
 
@@ -159,7 +164,7 @@ async function doLogin() {
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(page).classList.add('active');
         document.getElementById('password').value = '';
-        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');        
+        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
 
     } catch (e) {
         console.error('Falha ao comunicar com a API:', e);
@@ -347,46 +352,40 @@ function renderHistory() {
 }
 
 // ── Confirmar envio de TODAS as pendentes ─────────────────────────────────
-function confirmAll() {
+async function confirmAll() {
     if (!pendingReadings.length) return;
+
+    const body = pendingReadings;
+
+    try {
+        const response = await fetch(LIST_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            setStatus('Não foi possível salvar — tente novamente', 'error');
+            return;
+        }
+
+        await response.json();
+
+    } catch (erro) {
+        console.error('Falha ao comunicar com a API:', erro);
+        setStatus('Sem conexão — leituras mantidas, tente de novo', 'error');
+        return;
+    }
 
     pendingReadings.forEach(r => {
         const formatLabel = r.format === 'code_128' ? '128' : '39';
         const badgeClass = r.format === 'code_128' ? 'badge-128' : 'badge-39';
         sessionHistory.unshift({
-            value: r.value,
-            formatLabel,
-            badgeClass,
-            time: r.time,
-            user: currentUserName,
-            id: currentUser
+            value: r.value, formatLabel, badgeClass,
+            time: r.time, user: currentUserName, id: currentUser
         });
     });
-    /*
-    const body = pendingReadings;
 
-    try {
-      const response = await fetch(LIST_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-      }
-  
-      const result = await response.json();
-  
-      if (!result) { alert('Não foi possível salvar a(s) leitura(s). Entre em contato com o time interno da Dux Trucking.'); return; };
-      console.log('Sucesso:', result);
-      
-    } catch (erro) {
-      console.error('Falha ao comunicar com a API:', erro);
-    }
-    */
     const count = pendingReadings.length;
     pendingReadings = [];
     localStorage.removeItem('scanner-pending');
@@ -446,9 +445,9 @@ function renderUsers(users) {
 
     tbody.innerHTML = users.map((u, i) => `
         <tr>
-            <td>${u.nome ?? ''}</td>
+            <td>${u.username ?? ''}</td>
             <td>${u.email ?? ''}</td>
-            <td>${capitalizeWords(u.permissao ?? '')}</td>
+            <td>${capitalizeWords(u.permission ?? '')}</td>
             <td><button class="btn-tb-actions" onclick="editUser(${i})">✏️</button></td>
         </tr>
     `).join('');
@@ -460,9 +459,9 @@ function editUser(index) {
 
     newUser = false; // modo edição
 
-    document.getElementById('f-nome').value = user.nome ?? '';
+    document.getElementById('f-nome').value = user.username ?? '';
     document.getElementById('f-email').value = user.email ?? '';
-    document.getElementById('f-permissao').value = user.permissao ?? '';
+    document.getElementById('f-permissao').value = user.permission ?? '';
     document.getElementById('user-form-modal').classList.add('show');
 }
 
@@ -495,13 +494,20 @@ async function saveUser() {
         });
 
         if (!response.ok) {
-            showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
+            showPopup('error', `Erro: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
             return;
         }
 
-        closeUserForm();
+        const result = await response.json();
+
+        if (result.duplicated && newUser) {
+            showPopup('error', `Usuário já cadastrado.`);
+            return;
+        }
+
         showPopup('success', newUser ? 'Usuário cadastrado!' : 'Usuário atualizado!');
         await loadUsers();
+        closeUserForm();
     } catch (e) {
         showPopup('error', 'Erro ao salvar usuário.');
     } finally {

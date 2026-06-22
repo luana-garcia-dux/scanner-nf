@@ -256,6 +256,8 @@ async function processBlob(blob) {
         overlay.style.display = 'none';
 
         if (barcodes.length > 0) {
+            const userid = currentUser;
+            const username = currentUserName;
             const value = barcodes[0].rawValue;
             const format = barcodes[0].format;
 
@@ -264,6 +266,8 @@ async function processBlob(blob) {
             } else {
                 const now = new Date();
                 pendingReadings.push({
+                    userid,
+                    username,
                     value,
                     format,
                     time: `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`
@@ -345,7 +349,7 @@ function renderHistory() {
     document.getElementById('history-list').innerHTML = sessionHistory.slice(0, 20).map(h => `
       <div class="history-item">
         <div class="code"><span>${h.value}</span><span class="badge ${h.badgeClass}">Code ${h.formatLabel}</span></div>
-        <div class="meta">${h.user} · ${h.time}</div>
+        <div class="meta">${h.currentUserName} · ${h.time}</div>
       </div>
     `).join('');
     document.getElementById('history-container').style.display = 'block';

@@ -45,18 +45,17 @@
     <div id="admin-screen" class="screen">
         <div class="admin-container">
             <div class="header">
-                <div class="user-badge">
-                    <span class="user-name">Painel de usuários</span>
+                <div class="badge">
+                    <span class="heading">Scanner NF</span>
                 </div>
                 <div class="header-actions">
-                    <button class="btn-button" onclick="backToScanner()">Voltar</button>
-                    <button class="btn-button" onclick="doLogout()">Sair</button>
+                    <button class="btn-logout" onclick="doLogout()">Sair</button>
                 </div>
             </div>
     
             <div class="admin-toolbar">
-                <h2>Usuários</h2>
-                <button class="btn-primary" onclick="openUserForm()">+ Cadastrar usuário</button>
+                <h3>Painel de Usuários</h3>
+                <button class="btn-secondary" onclick="openUserForm()">Cadastrar usuário</button>
             </div>
     
             <div class="table-wrap">
@@ -73,9 +72,9 @@
     <!-- SCANNER -->
     <div id="scanner-screen" class="screen">
         <div class="header">
-            <div class="user-badge">
+            <div class="badge">
                 <div class="avatar" id="avatar-initials">--</div>
-                <span class="user-name" id="user-name-display">Usuário</span>
+                <span class="heading" id="heading-display">Usuário</span>
             </div>
             <button class="btn-button" onclick="doLogout()">Sair</button>
         </div>

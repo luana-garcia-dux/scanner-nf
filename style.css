@@ -278,6 +278,7 @@ select:focus {
 	margin-bottom: 1rem;
 	background: #000;
 	position: relative;
+	padding: 0 2rem
 }
 
 .preview-wrap img {
@@ -364,7 +365,7 @@ select:focus {
 
 .pending-item .code {
 	flex: 1;
-	font-size: 14px;
+	font-size: 12px;
 	font-weight: 500;
 	color: #1a1a1a;
 	display: flex;
@@ -429,7 +430,7 @@ select:focus {
 }
 
 .result-value {
-	font-size: 15px;
+	font-size: 14px;
 	font-weight: 500;
 	color: #1a1a1a;
 	word-break: break-all;
@@ -485,7 +486,7 @@ select:focus {
 }
 
 .history-item .code {
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: 500;
 	color: #1a1a1a;
 	display: flex;

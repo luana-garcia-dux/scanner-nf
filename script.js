@@ -259,7 +259,7 @@ window.addEventListener('load', async () => {
     const savedUser = localStorage.getItem('scanner-user');
     if (savedUser) {
         currentUser = savedUser;
-        document.getElementById('user-name-display').textContent = savedUser;
+        document.getElementById('heading-display').textContent = savedUser;
         document.getElementById('avatar-initials').textContent = getInitials(savedUser);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById('scanner-screen').classList.add('active');
@@ -432,7 +432,7 @@ async function doLogin() {
         
         currentUser = result.user;
         localStorage.setItem('scanner-user', currentUser);
-        document.getElementById('user-name-display').textContent = currentUser;
+        document.getElementById('heading-display').textContent = currentUser;
         document.getElementById('avatar-initials').textContent = getInitials(currentUser);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(page).classList.add('active');        

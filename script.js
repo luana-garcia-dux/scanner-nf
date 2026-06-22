@@ -63,9 +63,10 @@ window.addEventListener('load', async () => {
     const savedUser = localStorage.getItem('scanner-user');
     if (savedUser) {
         currentUser = savedUser;
+        currentUserName = localStorage.getItem('scanner-user-name') || '';
         const savedPage = localStorage.getItem('scanner-page') || 'scanner-screen';
-        document.getElementById('heading-display').textContent = savedUser;
-        document.getElementById('avatar-initials').textContent = getInitials(savedUser);
+        document.getElementById('heading-display').textContent = currentUserName;
+        document.getElementById('avatar-initials').textContent = getInitials(currentUserName);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(savedPage).classList.add('active');
 
@@ -157,7 +158,8 @@ async function doLogin() {
 
         currentUser = result.id;
         currentUserName = result.user;
-        localStorage.setItem('scanner-user', currentUserName);
+        localStorage.setItem('scanner-user', currentUser);
+        localStorage.setItem('scanner-user-name', currentUserName);
         localStorage.setItem('scanner-page', page);
         document.getElementById('heading-display').textContent = currentUserName;
         document.getElementById('avatar-initials').textContent = getInitials(currentUserName);
@@ -180,6 +182,7 @@ function doLogout() {
     sessionHistory = [];
     pendingReadings = [];
     localStorage.removeItem('scanner-user');
+    localStorage.removeItem('scanner-user-name');
     localStorage.removeItem('scanner-history');
     localStorage.removeItem('scanner-pending');
     localStorage.removeItem('scanner-page');
@@ -349,7 +352,7 @@ function renderHistory() {
     document.getElementById('history-list').innerHTML = sessionHistory.slice(0, 20).map(h => `
       <div class="history-item">
         <div class="code"><span>${h.value}</span><span class="badge ${h.badgeClass}">Code ${h.formatLabel}</span></div>
-        <div class="meta">${h.currentUserName} · ${h.time}</div>
+        <div class="meta">${h.user} · ${h.time}</div>
       </div>
     `).join('');
     document.getElementById('history-container').style.display = 'block';
@@ -386,7 +389,7 @@ async function confirmAll() {
         const badgeClass = r.format === 'code_128' ? 'badge-128' : 'badge-39';
         sessionHistory.unshift({
             value: r.value, formatLabel, badgeClass,
-            time: r.time, user: currentUserName, id: currentUser
+            time: r.time, user: r.username, id: r.userid
         });
     });
 

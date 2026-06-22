@@ -196,7 +196,7 @@ select:focus {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1rem 3rem;
+	padding: 1rem 2rem;
 	border-bottom: 1px solid #E4E4E7;
 }
 
@@ -239,7 +239,7 @@ select:focus {
 .camera-actions {
 	display: flex;
     gap: 10px;
-	padding: 1rem 3rem;
+	padding: 1rem 2rem;
 }
 
 .btn-camera {
@@ -339,7 +339,7 @@ select:focus {
 /* ── Leituras pendentes ── */
 .pending {
 	margin-bottom: 1rem;
-	padding: 0 3rem;
+	padding: 0 2rem;
 }
 
 .pending-title {
@@ -417,7 +417,7 @@ select:focus {
 	border-radius: 12px;
 	padding: 1rem 1.25rem;
 	border: 1px solid #e5e5e5;
-	margin: 0 3rem;
+	margin: 0 2rem;
 }
 
 .result-label {
@@ -464,7 +464,7 @@ select:focus {
 
 .history {
 	margin-top: 1rem;
-	padding: 0 3rem;
+	padding: 0 2rem;
 }
 
 .history-title {
@@ -485,7 +485,7 @@ select:focus {
 }
 
 .history-item .code {
-	font-size: 14px;
+	font-size: 12px;
 	font-weight: 500;
 	color: #1a1a1a;
 	display: flex;
@@ -513,7 +513,7 @@ select:focus {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1rem 3rem;
+	padding: 1rem 2rem;
 }
 
 .admin-toolbar .btn-form {
@@ -522,7 +522,7 @@ select:focus {
 
 .table-wrap {
 	overflow-x: auto;
-	padding: 0 3rem;
+	padding: 0 2rem;
 }
 
 /* rola lateral em tela menor */

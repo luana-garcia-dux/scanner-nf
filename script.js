@@ -8,6 +8,14 @@ const LIST_URL = "https://n8n-dux.duckdns.org/webhook-test/insert-barcode";
 const USERS_URL = "https://n8n-dux.duckdns.org/webhook-test/users"
 const USER_URL = "https://n8n-dux.duckdns.org/webhook-test/new-user";
 
+const MOCK_USERS = [
+    { nome: 'João Silva', email: 'joao.silva@dux.com', permissao: 'admin' },
+    { nome: 'Maria Oliveira', email: 'maria.oliveira@dux.com', permissao: 'user' }
+];
+
+let usersCache = [];
+let newUser = true; // flag para diferenciar criação de edição no formulário de usuário
+
 let popupCallback = null;
 
 function showPopup(type, message, onClose) {
@@ -47,6 +55,139 @@ function hideLoading() {
     document.getElementById('loading').classList.remove('show');
 }
 
+// ── Carregamento inicial ──────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+    await initDetector();
+
+    const savedUser = localStorage.getItem('scanner-user');
+    if (savedUser) {
+        currentUser = savedUser;
+        const savedPage = localStorage.getItem('scanner-page') || 'scanner-screen';
+        document.getElementById('heading-display').textContent = savedUser;
+        document.getElementById('avatar-initials').textContent = getInitials(savedUser);
+        document.getElementById('login-screen').classList.remove('active');
+        document.getElementById(savedPage).classList.add('active');
+        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
+
+        const savedHistory = localStorage.getItem('scanner-history');
+        if (savedHistory) {
+            try {
+                sessionHistory = JSON.parse(savedHistory);
+                renderHistory();
+            } catch (e) {
+                sessionHistory = [];
+            }
+        }
+
+        const savedPending = localStorage.getItem('scanner-pending');
+        if (savedPending) {
+            try {
+                pendingReadings = JSON.parse(savedPending);
+                // Descarta formato antigo (pré-lote) para não quebrar
+                if (!Array.isArray(pendingReadings) ||
+                    (pendingReadings.length && typeof pendingReadings[0] !== 'object')) {
+                    pendingReadings = [];
+                    localStorage.removeItem('scanner-pending');
+                }
+            } catch (e) {
+                pendingReadings = [];
+            }
+            renderPending();
+            if (pendingReadings.length) {
+                setStatus(`${pendingReadings.length} leitura(s) pendente(s) — confirme o envio`, 'success');
+            }
+        }
+    }
+});
+
+// ── Login / Logout ────────────────────────────────────────────────────────
+async function doLogin() {
+    showLoading('Carregando...');
+
+    try {
+        var page = 'admin-screen';
+        const name = document.getElementById('login-name').value.trim();
+        const pin = document.getElementById('password').value.trim();
+        if (!name) {
+            showPopup('error', 'Digite seu e-mail para entrar');
+            return;
+        }
+        if (!pin) {
+            showPopup('error', 'Digite a senha para entrar.');
+            return;
+        }
+
+        const body = {
+            "email": name,
+            "pin": pin
+        };
+
+        const response = await fetch(LOGIN_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
+            return;
+        }
+
+        const result = await response.json();
+
+        if (!result.user) {
+            showPopup('error', 'Usuário ou senha inválida. Tente novamente.');
+            return;
+        }
+
+        console.log('Sucesso:', result.message);
+
+        if (result.permission == "user") page = 'scanner-screen';
+
+        currentUser = "Luana Garcia";
+        localStorage.setItem('scanner-user', currentUser);
+        localStorage.setItem('scanner-page', page);
+        document.getElementById('heading-display').textContent = currentUser;
+        document.getElementById('avatar-initials').textContent = getInitials(currentUser);
+        document.getElementById('login-screen').classList.remove('active');
+        document.getElementById(page).classList.add('active');
+        document.getElementById('password').value = '';
+        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
+
+        loadUsers();
+
+    } catch (e) {
+        console.error('Falha ao comunicar com a API:', e);
+        showPopup('error', 'Há algo errado. Entre em contato com o time interno da Dux Trucking.');
+    } finally {
+        hideLoading();
+    }
+}
+
+function doLogout() {
+    currentUser = '';
+    sessionHistory = [];
+    pendingReadings = [];
+    localStorage.removeItem('scanner-user');
+    localStorage.removeItem('scanner-history');
+    localStorage.removeItem('scanner-pending');
+    localStorage.removeItem('scanner-page');
+
+    renderPending();
+    document.getElementById('history-list').innerHTML = '';
+    document.getElementById('history-container').style.display = 'none';
+    document.getElementById('last-code').textContent = 'Nenhum código salvo ainda';
+    document.getElementById('last-code').classList.add('empty');
+    document.getElementById('last-meta').innerHTML = '';
+    document.getElementById('login-name').value = '';
+    document.getElementById('preview-wrap').style.display = 'none';
+
+    ['scanner-screen', 'admin-screen', 'login-screen'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById('login-screen').classList.add('active');
+}
+
 // ── Detector ──────────────────────────────────────────────────────────────
 async function initDetector() {
     if (!('BarcodeDetector' in window)) return;
@@ -56,7 +197,7 @@ async function initDetector() {
         if (formats.length > 0) detector = new BarcodeDetector({
             formats
         });
-    } catch (e) {}
+    } catch (e) { }
 }
 
 // ── Input dinâmico — criado do zero a cada clique ─────────────────────────
@@ -252,64 +393,23 @@ function confirmAll() {
     setStatus(`${count} código${count > 1 ? 's' : ''} salvo${count > 1 ? 's' : ''} no histórico!`, 'success');
 }
 
-// ── Carregamento inicial ──────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-    await initDetector();
-
-    const savedUser = localStorage.getItem('scanner-user');
-    if (savedUser) {
-        currentUser = savedUser;
-        document.getElementById('heading-display').textContent = savedUser;
-        document.getElementById('avatar-initials').textContent = getInitials(savedUser);
-        document.getElementById('login-screen').classList.remove('active');
-        document.getElementById('scanner-screen').classList.add('active');
-        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
-
-        const savedHistory = localStorage.getItem('scanner-history');
-        if (savedHistory) {
-            try {
-                sessionHistory = JSON.parse(savedHistory);
-                renderHistory();
-            } catch (e) {
-                sessionHistory = [];
-            }
-        }
-
-        const savedPending = localStorage.getItem('scanner-pending');
-        if (savedPending) {
-            try {
-                pendingReadings = JSON.parse(savedPending);
-                // Descarta formato antigo (pré-lote) para não quebrar
-                if (!Array.isArray(pendingReadings) ||
-                    (pendingReadings.length && typeof pendingReadings[0] !== 'object')) {
-                    pendingReadings = [];
-                    localStorage.removeItem('scanner-pending');
-                }
-            } catch (e) {
-                pendingReadings = [];
-            }
-            renderPending();
-            if (pendingReadings.length) {
-                setStatus(`${pendingReadings.length} leitura(s) pendente(s) — confirme o envio`, 'success');
-            }
-        }
-    }
-});
-
 function openUserForm() {
-    document.getElementById('f-nome').value  = '';
+    newUser = true; // modo criação
+    document.getElementById('f-nome').value = '';
     document.getElementById('f-email').value = '';
-    document.getElementById('f-pin').value   = '';
+    document.getElementById('f-permissao').value = '';
     document.getElementById('user-form-modal').classList.add('show');
 }
 
 function closeUserForm() {
     document.getElementById('user-form-modal').classList.remove('show');
+    newUser = true; // resetar flag ao fechar o formulário
 }
 
 async function loadUsers() {
     const tbody = document.getElementById('users-tbody');
     tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+
     try {
         const response = await fetch(USERS_URL);
 
@@ -320,10 +420,10 @@ async function loadUsers() {
 
         const users = await response.json();
         renderUsers(users);
-    } catch(e) {
+    } catch (e) {
         tbody.innerHTML = '<tr><td colspan="4">Erro ao carregar usuários.</td></tr>';
         showPopup('error', 'Não foi possível carregar os usuários.');
-    }    
+    }
 }
 
 function renderUsers(users) {
@@ -332,20 +432,39 @@ function renderUsers(users) {
         tbody.innerHTML = '<tr><td colspan="4">Nenhum usuário cadastrado.</td></tr>';
         return;
     }
-    tbody.innerHTML = users.map(u => `
+
+    function capitalizeWords(str) {
+        return str.replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    usersCache = users;
+
+    tbody.innerHTML = users.map((u, i) => `
         <tr>
-            <td>${u.nome  ?? ''}</td>
+            <td>${u.nome ?? ''}</td>
             <td>${u.email ?? ''}</td>
-            <td>${u.permissao ?? ''}</td>
-            <td><button class="btn-link" onclick="editUser('${u.email}')">Editar</button></td>
+            <td>${capitalizeWords(u.permissao ?? '')}</td>
+            <td><button class="btn-tb-actions" onclick="editUser(${i})">✏️</button></td>
         </tr>
     `).join('');
 }
 
+function editUser(index) {
+    const user = usersCache[index];
+    if (!user) return;
+
+    newUser = false; // modo edição
+
+    document.getElementById('f-nome').value = user.nome ?? '';
+    document.getElementById('f-email').value = user.email ?? '';
+    document.getElementById('f-permissao').value = user.permissao ?? '';
+    document.getElementById('user-form-modal').classList.add('show');
+}
+
 async function saveUser() {
-    const name = document.getElementById('login-name').value.trim();
-    const email = document.getElementById('login-name').value.trim();
-    const type = document.getElementById('login-name').value.trim();
+    const name = document.getElementById('f-nome').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+    const type = document.getElementById('f-permissao').value.trim();
 
     if (!name || !email || !type) {
         showPopup('error', 'Preencha todos os campos obrigatórios');
@@ -358,7 +477,8 @@ async function saveUser() {
         const body = {
             "name": name,
             "email": email,
-            "permission": type
+            "permission": type,
+            "new": newUser
         };
 
         const response = await fetch(USER_URL, {
@@ -375,94 +495,11 @@ async function saveUser() {
         }
 
         closeUserForm();
-        showPopup('success', 'Usuário cadastrado!');
+        showPopup('success', newUser ? 'Usuário cadastrado!' : 'Usuário atualizado!');
         await loadUsers();
-    } catch(e) {
+    } catch (e) {
         showPopup('error', 'Erro ao salvar usuário.');
     } finally {
         hideLoading();
     }
-}
-
-// ── Login / Logout ────────────────────────────────────────────────────────
-async function doLogin() {
-    showLoading('Carregando...');
-    
-    try {
-        var page = 'admin-screen';
-        const name = document.getElementById('login-name').value.trim();
-        const pin = document.getElementById('password').value.trim();
-        if (!name) {
-            showPopup('error', 'Digite seu e-mail para entrar');
-            return;
-        }
-        if (!pin) {
-            showPopup('error', 'Digite a senha para entrar.');
-            return;
-        }
-
-        const body = {
-            "email": name,
-            "pin": pin
-        };
-
-        const response = await fetch(LOGIN_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (!response.ok) {
-            showPopup('error', `Erro no login: ${response.status}. Entre em contato com o time interno da Dux Trucking.`);
-            return;
-        }
-
-        const result = await response.json();
-
-        if (!result.user) {
-            showPopup('error', 'Usuário ou senha inválida. Tente novamente.');
-            return;
-        }
-
-        console.log('Sucesso:', result.message);
-
-        if (result.permission == "user") page = 'scanner-screen';
-        
-        currentUser = result.user;
-        localStorage.setItem('scanner-user', currentUser);
-        document.getElementById('heading-display').textContent = currentUser;
-        document.getElementById('avatar-initials').textContent = getInitials(currentUser);
-        document.getElementById('login-screen').classList.remove('active');
-        document.getElementById(page).classList.add('active');        
-        document.getElementById('password').value = '';
-        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
-
-    } catch (e) {
-        console.error('Falha ao comunicar com a API:', e);
-        showPopup('error', 'Há algo errado. Entre em contato com o time interno da Dux Trucking.');
-    } finally {
-        hideLoading();
-    }
-}
-
-function doLogout() {
-    currentUser = '';
-    sessionHistory = [];
-    pendingReadings = [];
-    localStorage.removeItem('scanner-user');
-    localStorage.removeItem('scanner-history');
-    localStorage.removeItem('scanner-pending');
-
-    renderPending();
-    document.getElementById('history-list').innerHTML = '';
-    document.getElementById('history-container').style.display = 'none';
-    document.getElementById('last-code').textContent = 'Nenhum código salvo ainda';
-    document.getElementById('last-code').classList.add('empty');
-    document.getElementById('last-meta').innerHTML = '';
-    document.getElementById('login-name').value = '';
-    document.getElementById('preview-wrap').style.display = 'none';
-    document.getElementById('scanner-screen').classList.remove('active');
-    document.getElementById('login-screen').classList.add('active');
 }

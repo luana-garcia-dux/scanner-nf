@@ -139,7 +139,7 @@ input[type="number"]:focus {
 	opacity: 0.8;
 }
 
-.bts-secondary {
+.btn-secondary {
     padding: 14px;
     background: #B92633;
     color: #fff;

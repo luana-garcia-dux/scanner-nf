@@ -1,4 +1,5 @@
 let currentUser = '';
+let currentUserName = '';
 let pendingReadings = []; // [{ value, format, time }]
 let sessionHistory = [];
 let detector = null;
@@ -144,19 +145,21 @@ async function doLogin() {
 
         console.log('Sucesso:', result.message);
 
-        if (result.permission == "user") page = 'scanner-screen';
+        if (result.permission == "user") {
+            page = 'scanner-screen';
+            loadUsers();
+        }
 
-        currentUser = "Luana Garcia";
+        currentUser = result.id;
+        currentUserName = result.user;
         localStorage.setItem('scanner-user', currentUser);
         localStorage.setItem('scanner-page', page);
-        document.getElementById('heading-display').textContent = currentUser;
-        document.getElementById('avatar-initials').textContent = getInitials(currentUser);
+        document.getElementById('heading-display').textContent = currentUserName;
+        document.getElementById('avatar-initials').textContent = getInitials(currentUserName);
         document.getElementById('login-screen').classList.remove('active');
         document.getElementById(page).classList.add('active');
         document.getElementById('password').value = '';
-        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');
-
-        loadUsers();
+        setStatus(detector ? 'Pronto para leitura' : 'BarcodeDetector não suportado — use Chrome Android', detector ? '' : 'error');        
 
     } catch (e) {
         console.error('Falha ao comunicar com a API:', e);
@@ -168,6 +171,7 @@ async function doLogin() {
 
 function doLogout() {
     currentUser = '';
+    currentUserName = '';
     sessionHistory = [];
     pendingReadings = [];
     localStorage.removeItem('scanner-user');
@@ -354,7 +358,8 @@ function confirmAll() {
             formatLabel,
             badgeClass,
             time: r.time,
-            user: currentUser
+            user: currentUserName,
+            id: currentUser
         });
     });
     /*

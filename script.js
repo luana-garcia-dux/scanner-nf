@@ -157,7 +157,7 @@ async function doLogin() {
 
         currentUser = result.id;
         currentUserName = result.user;
-        localStorage.setItem('scanner-user', currentUser);
+        localStorage.setItem('scanner-user', currentUserName);
         localStorage.setItem('scanner-page', page);
         document.getElementById('heading-display').textContent = currentUserName;
         document.getElementById('avatar-initials').textContent = getInitials(currentUserName);

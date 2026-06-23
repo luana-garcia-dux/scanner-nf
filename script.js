@@ -5,9 +5,9 @@ let sessionHistory = [];
 let detector = null;
 
 const LOGIN_URL = "https://n8n-dux.duckdns.org/webhook/login-scan-nf";
-const LIST_URL = "https://n8n-dux.duckdns.org/webhook-test/insert-barcode";
+const LIST_URL = "https://n8n-dux.duckdns.org/webhook/insert-barcode";
 const USERS_URL = "https://n8n-dux.duckdns.org/webhook/users"
-const USER_URL = "https://n8n-dux.duckdns.org/webhook-test/user";
+const USER_URL = "https://n8n-dux.duckdns.org/webhook/user";
 
 const MOCK_USERS = [
     { nome: 'João Silva', email: 'joao.silva@dux.com', permissao: 'admin' },
@@ -351,8 +351,8 @@ function renderHistory() {
         `<span class="badge ${last.badgeClass}">Code ${last.formatLabel}</span> ${last.time}`;
     document.getElementById('history-list').innerHTML = sessionHistory.slice(0, 20).map(h => `
       <div class="history-item">
-        <div class="code"><span>${h.value}</span><span class="badge ${h.badgeClass}">Code ${h.formatLabel}</span></div>
-        <div class="meta">${h.user} · ${h.time}</div>
+        <div class="code"><span>${h.value}</span></div>
+        <div class="meta"><span class="badge ${h.badgeClass}">Code ${h.formatLabel}</span> ${h.user} · ${h.time}</div>
       </div>
     `).join('');
     document.getElementById('history-container').style.display = 'block';

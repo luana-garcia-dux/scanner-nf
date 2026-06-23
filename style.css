@@ -239,7 +239,7 @@ select:focus {
 .camera-actions {
 	display: flex;
     gap: 10px;
-	padding: 1rem 2rem;
+	margin: 2rem;
 }
 
 .btn-camera {
@@ -278,7 +278,7 @@ select:focus {
 	margin-bottom: 1rem;
 	background: #000;
 	position: relative;
-	padding: 0 2rem
+	margin: 0 2rem
 }
 
 .preview-wrap img {
@@ -340,7 +340,7 @@ select:focus {
 /* ── Leituras pendentes ── */
 .pending {
 	margin-bottom: 1rem;
-	padding: 0 2rem;
+	margin: 0 2rem;
 }
 
 .pending-title {
@@ -365,7 +365,7 @@ select:focus {
 
 .pending-item .code {
 	flex: 1;
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: 500;
 	color: #1a1a1a;
 	display: flex;
@@ -406,7 +406,7 @@ select:focus {
 	font-family: 'Poppins', sans-serif;
 	font-weight: 500;
 	cursor: pointer;
-	margin-top: 4px;
+	margin-top: 16px;
 }
 
 .btn-confirmar:active {
@@ -418,7 +418,7 @@ select:focus {
 	border-radius: 12px;
 	padding: 1rem 1.25rem;
 	border: 1px solid #e5e5e5;
-	margin: 0 2rem;
+	margin: 2rem 2rem;
 }
 
 .result-label {
@@ -443,29 +443,29 @@ select:focus {
 	font-style: italic;
 }
 
-.result-meta {
-	font-size: 12px;
-	color: #aaa;
-	margin-top: 6px;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
 .badge-128 {
+	font-weight: 200;
+	font-size: 12px;
 	background: #fbecec;
 	color: #B92633;
+	padding: 2px 8px;
+    border-radius: 20px;
 }
 
 .badge-39 {
+	font-weight: 200;
+	font-size: 12px;
 	background: #fef6e6;
 	color: #F18C23;
+	padding: 2px 8px;
+    border-radius: 20px;
 }
 
 .history {
 	margin-top: 1rem;
-	padding: 0 2rem;
+	margin-bottom: 4rem;
+	margin-left: 2rem;
+	margin-right: 2rem;
 }
 
 .history-title {
@@ -497,10 +497,14 @@ select:focus {
 	line-height: 1.5;
 }
 
-.history-item .meta {
+.meta {
 	font-size: 12px;
 	color: #aaa;
-	margin-top: 4px;
+	margin-top: 6px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
 .admin-container {
@@ -523,7 +527,7 @@ select:focus {
 
 .table-wrap {
 	overflow-x: auto;
-	padding: 0 2rem;
+	margin: 0 2rem;
 }
 
 /* rola lateral em tela menor */
